@@ -13,7 +13,7 @@ class ManageUserVpnController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function lastLoggedUsers()
     {
         $resultado = shell_exec("cat /var/log/syslog | grep 'MULTI: primary virtual IP for'");
         $resultado = str_replace("server openvpn[717]:", "", $resultado);
@@ -21,7 +21,6 @@ class ManageUserVpnController extends Controller
         $resultado = str_replace("Mar", "+Mar", $resultado);
         $strings = explode("+", $resultado);
         $usuarios = array();
-
         $string_cortadas_por_espaco = array();
         for ($i = 0; $i < count($strings); $i++) {                        //Transformar cada string no indice i em um vetor dentro de um vetor
             $array_por_espaco = explode(" ", $strings[$i]);
@@ -59,32 +58,54 @@ class ManageUserVpnController extends Controller
                 $usuario[$j]['nome_usuario'] = $separando_ip_de_nome_usuario[0];
                 $usuario[$j]['ip_vpn'] = $string_cortadas_por_espaco[$j][8];
                 $usuario[$j]['ip_publico'] = $separando_ip_de_nome_usuario[1];
+
                 array_push($usuarios, $usuario[$j]);
             }
         }
-        for ($f = 0; $f < count($usuarios); $f++) {
-            echo "<br>";
-            echo "Ip da Vpn " . $usuarios[$f]['ip_vpn'] . "<br>";
-            echo "Hora da ultima conexão: " . $usuarios[$f]['dia'] . "-" . $usuarios[$f]['mes'] . "-" . $usuarios[$f]['hora'] . "<br>";
-            echo "Ip publico: " . $usuarios[$f]['ip_publico'] . "<br>";
-            echo "usuario: " . $usuarios[$f]['nome_usuario'];
-            echo "<br>";
-            echo $this->verifyIfUserIsConnectToVpn($usuarios[$f]['ip_vpn']);
-            echo "<br>";
-        }
+        return $usuarios;
+    }
+    public function index()
+    {
+        $usuarios =  $this->lastLoggedUsers();
+        /*for ($f = 0; $f < count($usuarios); $f++) {
+                echo "<br>";
+                echo "Ip da Vpn " . $usuarios[$f]['ip_vpn'] . "<br>";
+                echo "Hora da ultima conexão: " . $usuarios[$f]['dia'] . "-" . $usuarios[$f]['mes'] . "-" . $usuarios[$f]['hora'] . "<br>";
+                echo "Ip publico: " . $usuarios[$f]['ip_publico'] . "<br>";
+                echo "usuario: " . $usuarios[$f]['nome_usuario'];
+                echo "<br>";
+                echo "<span id=".$f."></span>";
+                //echo $this->verifyIfUserIsConnectToVpn($usuarios[$f]['ip_vpn']);
+                echo "<br>";
+        }*/
+
+        return view('ManageUserVpn/index', ['usuarios' => $usuarios]);
     }
     public function verifyIfUserIsConnectToVpn($ip_user) //Essa função verifica se o usuário está conectado a VPN
     {
         $host = $ip_user;
         $ping = new \JJG\Ping($host);
         $ping->setTtl(128);
-        $ping->setTimeout(0.1);
+        $ping->setTimeout(0.2);
         $latency = $ping->ping();
         if ($latency !== false) {
-            print 'Latency is ' . $latency . ' ms';
+            //print 'Latency is ' . $latency . ' ms';
+            return "Usuário Conectado, ping de ' . $latency . ' ms'";
         } else {
-            print 'Não foi possível conectar';
+            return 'Usuário Desconectado';
         }
+    }
+    public function ping($ip)
+    {
+        $usuarios =  $this->lastLoggedUsers();
+        $pings_usuarios = array();
+        for ($p = 0; $p < count($usuarios); $p++) {
+            $ping = $this->verifyIfUserIsConnectToVpn($usuarios[$p]["ip_vpn"]);
+            array_push($pings_usuarios, $ping);
+        }
+        return response()->json(
+            ["ping" => $pings_usuarios]
+        );
     }
     /**
      * Show the form for creating a new resource.
@@ -96,7 +117,7 @@ class ManageUserVpnController extends Controller
         //echo shell_exec("ls /compartilhada");
         //echo shell_exec("bash /compartilhada/new_client.sh vitao59");
 
-        return view('ManageUserVpnController/create');
+        return view('ManageUserVpn/create');
     }
 
     /**

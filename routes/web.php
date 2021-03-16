@@ -18,3 +18,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::resource('ManageUserVpn', ManageUserVpnController::class);
+Route::any('ping/{id_contato}', [ManageUserVpnController::class, 'ping'])->name('ManageUserVpn.ping');
