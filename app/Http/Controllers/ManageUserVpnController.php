@@ -58,12 +58,12 @@ class ManageUserVpnController extends Controller
                 $usuario[$j]['nome_usuario'] = $separando_ip_de_nome_usuario[0];
                 $usuario[$j]['ip_vpn'] = $string_cortadas_por_espaco[$j][8];
                 $usuario[$j]['ip_publico'] = $separando_ip_de_nome_usuario[1];
-
                 array_push($usuarios, $usuario[$j]);
             }
         }
         return $usuarios;
     }
+
     public function index()
     {
         $usuarios =  $this->lastLoggedUsers();
@@ -86,25 +86,26 @@ class ManageUserVpnController extends Controller
         $host = $ip_user;
         $ping = new \JJG\Ping($host);
         $ping->setTtl(128);
-        $ping->setTimeout(0.2);
+        $ping->setTimeout(1);
         $latency = $ping->ping();
         if ($latency !== false) {
             //print 'Latency is ' . $latency . ' ms';
-            return "Usuário Conectado, ping de ' . $latency . ' ms'";
+            return "Usuário Conectado, ping de: $latency ms";
         } else {
             return 'Usuário Desconectado';
         }
     }
     public function ping($ip)
     {
-        $usuarios =  $this->lastLoggedUsers();
+        /*$usuarios =  $this->lastLoggedUsers();
         $pings_usuarios = array();
         for ($p = 0; $p < count($usuarios); $p++) {
             $ping = $this->verifyIfUserIsConnectToVpn($usuarios[$p]["ip_vpn"]);
             array_push($pings_usuarios, $ping);
-        }
+        }*/
+        $ping_usuario = $this->verifyIfUserIsConnectToVpn($ip);
         return response()->json(
-            ["ping" => $pings_usuarios]
+            ["ping" => $ping_usuario]
         );
     }
     /**
@@ -116,7 +117,6 @@ class ManageUserVpnController extends Controller
     {
         //echo shell_exec("ls /compartilhada");
         //echo shell_exec("bash /compartilhada/new_client.sh vitao59");
-
         return view('ManageUserVpn/create');
     }
 
@@ -129,7 +129,7 @@ class ManageUserVpnController extends Controller
     public function store(Request $request)
     {
 
-        echo shell_exec("bash /compartilhada/new_client.sh $request->nome_usuario ");
+        echo shell_exec('bash /compartilhada/new_client.sh '.$request->nome_usuario);
     }
 
     /**
@@ -175,5 +175,8 @@ class ManageUserVpnController extends Controller
     public function destroy(ManageUserVpn $manageUserVpn)
     {
         //
+    }
+    public function usuario($id_usuario){
+        return view('ManageUserVpn/usuario');
     }
 }
